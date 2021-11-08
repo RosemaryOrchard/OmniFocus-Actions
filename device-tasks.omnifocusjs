@@ -14,44 +14,76 @@
 	var action = new PlugIn.Action(function(selection, sender){
 		// action code
 		// selection options: tasks, projects, folders, tags, allObjects
-		let deviceParentTag = tagsMatching("Devices")[0];
+        let inputForm = new Form();
+        let deviceParentTag = tagsMatching("Devices")[0];
         let deviceTags = {};
         deviceParentTag.children.map(tag => {deviceTags[tag.id.primaryKey] = tag.name});
-        let inputForm = new Form();
-        inputForm.addField(new Form.Field.String("taskName", "Task", null));
-        inputForm.addField(new Form.Field.String("note", "Notes", null));
-        Object.keys(deviceTags).forEach(function (tagId) {
-            inputForm.addField(new Form.Field.Checkbox(tagId, deviceTags[tagId], false));
-        });
-        let taskName = "";
-        let taskNote = "";
-        let devices = [];
-        let formPromise = inputForm.show('', 'OK');
-        
-        inputForm.validate = function(formObject){
-			taskName = formObject.values["taskName"];
-			taskNote = formObject.values["note"];
-			devices = [];
-			Object.keys(deviceTags).forEach(function (tagId) {
-                if (formObject.values[tagId]) {
-                    devices.push(tagId);
-                }
-            });
-			return taskName && devices.length;
-		}
 
-        formPromise.then(function(formObject){
-			devices.forEach(function (tagId) {
-                let task = new Task(taskName + ' on ' + deviceTags[tagId], inbox.ending);
-                task.note = taskNote;
-                task.addTag(Tag.byIdentifier(tagId));
+        if (selection.tasks.length) {
+            let tasks = {};
+            
+            selection.tasks.map(task => {
+                tasks[task.id.primaryKey] = task.name;
             });
-		})
-		
-		// PROMISE FUNCTION CALLED UPON FORM CANCELLATION
-		formPromise.catch(function(err){
-			console.log("form cancelled", err.message)
-		})
+            inputForm.addField(new Form.Field.MultipleOptions('tasks', 'Tasks', Object.keys(tasks), Object.values(tasks), Object.keys(tasks)));
+            inputForm.addField(new Form.Field.String('prefix', 'Prefix Tasks with', 'Install'));
+            inputForm.addField(new Form.Field.Checkbox('keep', 'Keep Original Task?', true));
+            inputForm.addField(new Form.Field.MultipleOptions('devices', 'Devices', Object.keys(deviceTags), Object.values(deviceTags), []));
+            let formPromise = inputForm.show('', 'OK');
+            inputForm.validate = function(formObject){
+                return formObject.values["tasks"].length && formObject.values["devices"].length;
+            }
+
+            formPromise.then(function(formObject){
+                formObject.values["tasks"].forEach(function (originalTaskId) {
+                    let originalTask = Task.byIdentifier(originalTaskId);
+                    formObject.values["devices"].forEach(function (tagId) {
+                        let taskName = formObject.values["prefix"].trim() + ' ' + originalTask.name.trim() + ' on ' + deviceTags[tagId];
+                        taskName = taskName.trim();
+
+                        let newTask = new Task(taskName, inbox.ending);
+                        newTask.note = originalTask.note ?? "";
+                        newTask.addTag(Tag.byIdentifier(tagId));
+                    });
+
+                    if (!formObject.values["keep"]) {
+                        originalTask.active = false;
+                    }
+                });
+            });
+            
+            formPromise.catch(function(err){
+                console.log("form cancelled", err.message)
+            });
+        } else {
+            inputForm.addField(new Form.Field.String("taskName", "Task", null));
+            inputForm.addField(new Form.Field.String("note", "Notes", null));
+            inputForm.addField(new Form.Field.MultipleOptions('devices', 'Devices', Object.keys(deviceTags), Object.values(deviceTags), []));
+            let taskName = "";
+            let taskNote = "";
+
+            let formPromise = inputForm.show('', 'OK');
+            
+            inputForm.validate = function(formObject){
+                taskName = formObject.values["taskName"];
+                taskNote = formObject.values["note"] ?? "";
+
+                return taskName && formObject.values["devices"].length;
+            }
+
+            formPromise.then(function(formObject){
+                console.log(formObject.values);
+                formObject.values["devices"].forEach(function (tagId) {
+                    let newTask = new Task(taskName + ' on ' + deviceTags[tagId], inbox.ending);
+                    newTask.note = taskNote;
+                    newTask.addTag(Tag.byIdentifier(tagId));
+                });
+            });
+            
+            formPromise.catch(function(err){
+                console.log("form cancelled", err.message)
+            });
+        }
 	});
 
 	action.validate = function(selection, sender){
