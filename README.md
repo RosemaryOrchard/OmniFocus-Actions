@@ -1,5 +1,4 @@
 # OmniFocus-Actions
-JavaScript actions for OmniFocus using OmniAutomation
 
 These are some of the actions I use in OmniFocus on a regular basis.
 
