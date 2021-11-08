@@ -4,7 +4,7 @@
 	"author": "Rosemary Orchard",
 	"identifier": "com.rosemaryorchard.omnifocus.device-tasks",
 	"version": "1.0",
-	"description": "Create a task for each selected device.",
+	"description": "This requires a tag called 'Devices'. When the action is run, you are asked for a task name and the contents of a note (optional), and then presented with a choice of the sub-tags of your Devices tag. Then one task per selected tag is added to the end of your OmniFocus inbox with the suffix ' on [tagName]' and the tag of the device.",
 	"label": "Device Tasks",
 	"shortLabel": "Device Tasks",
 	"paletteLabel": "Device Tasks",

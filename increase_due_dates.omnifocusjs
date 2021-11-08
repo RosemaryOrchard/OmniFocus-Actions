@@ -4,7 +4,7 @@
 	"author": "Rosemary Orchard",
 	"identifier": "com.rosemaryorchard.omnifocus.increase_due_dates_in_project",
 	"version": "1.0",
-	"description": "Increase Due Dates in Project",
+	"description": "This requires you to have a project selected, and increases the due date of all the tasks in that project by one day. Tasks without a due date are not effected, and the project itself is not modified.",
 	"label": "Increase Due Dates in Project",
 	"shortLabel": "Inc. Due Dates",
 	"paletteLabel": "Inc. Due Dates",
