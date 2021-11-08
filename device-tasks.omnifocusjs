@@ -1,0 +1,64 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Rosemary Orchard",
+	"identifier": "com.rosemaryorchard.omnifocus.device-tasks",
+	"version": "1.0",
+	"description": "Create a task for each selected device.",
+	"label": "Device Tasks",
+	"shortLabel": "Device Tasks",
+	"paletteLabel": "Device Tasks",
+	"image": "laptopcomputer.and.iphone"
+}*/
+(() => {
+	var action = new PlugIn.Action(function(selection, sender){
+		// action code
+		// selection options: tasks, projects, folders, tags, allObjects
+		let deviceParentTag = tagsMatching("Devices")[0];
+        let deviceTags = {};
+        deviceParentTag.children.map(tag => {deviceTags[tag.id.primaryKey] = tag.name});
+        let inputForm = new Form();
+        inputForm.addField(new Form.Field.String("taskName", "Task", null));
+        inputForm.addField(new Form.Field.String("note", "Notes", null));
+        Object.keys(deviceTags).forEach(function (tagId) {
+            inputForm.addField(new Form.Field.Checkbox(tagId, deviceTags[tagId], false));
+        });
+        let taskName = "";
+        let taskNote = "";
+        let devices = [];
+        let formPromise = inputForm.show('', 'OK');
+        
+        inputForm.validate = function(formObject){
+			taskName = formObject.values["taskName"];
+			taskNote = formObject.values["note"];
+			devices = [];
+			Object.keys(deviceTags).forEach(function (tagId) {
+                if (formObject.values[tagId]) {
+                    devices.push(tagId);
+                }
+            });
+			return taskName && devices.length;
+		}
+
+        formPromise.then(function(formObject){
+			devices.forEach(function (tagId) {
+                let task = new Task(taskName + ' on ' + deviceTags[tagId], inbox.ending);
+                task.note = taskNote;
+                task.addTag(Tag.byIdentifier(tagId));
+            });
+		})
+		
+		// PROMISE FUNCTION CALLED UPON FORM CANCELLATION
+		formPromise.catch(function(err){
+			console.log("form cancelled", err.message)
+		})
+	});
+
+	action.validate = function(selection, sender){
+		// validation code
+		// selection options: tasks, projects, folders, tags, allObjects
+		return true
+	};
+	
+	return action;
+})();

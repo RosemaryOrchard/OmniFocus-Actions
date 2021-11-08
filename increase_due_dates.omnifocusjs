@@ -1,0 +1,32 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Rosemary Orchard",
+	"identifier": "com.rosemaryorchard.omnifocus.increase_due_dates_in_project",
+	"version": "1.0",
+	"description": "Increase Due Dates in Project",
+	"label": "Increase Due Dates in Project",
+	"shortLabel": "Inc. Due Dates",
+	"paletteLabel": "Inc. Due Dates",
+	"image": "gearshape"
+}*/
+(() => {
+	var action = new PlugIn.Action(function(selection, sender){
+		// action code
+		// selection options: tasks, projects, folders, tags, allObjects
+        let pushOutBy = new DateComponents();
+        pushOutBy.day = 1;
+		project = selection.projects[0]
+		project.flattenedTasks.forEach(task => {
+            if (task.dueDate) {
+                task.dueDate = Calendar.current.dateByAddingDateComponents(task.dueDate,pushOutBy);
+            }
+        });
+	});
+
+	action.validate = function(selection, sender){
+		return (selection.projects.length === 1)
+	};
+	
+	return action;
+})();
