@@ -72,7 +72,6 @@
             }
 
             formPromise.then(function(formObject){
-                console.log(formObject.values);
                 formObject.values["devices"].forEach(function (tagId) {
                     let newTask = new Task(taskName + ' on ' + deviceTags[tagId], inbox.ending);
                     newTask.note = taskNote;
