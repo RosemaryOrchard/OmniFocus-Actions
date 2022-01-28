@@ -1,0 +1,92 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Rosemary Orchard",
+	"identifier": "com.rosemaryorchard.omnifocus.export-project-list",
+	"version": "1.0",
+	"description": "Export a list of your active projects.",
+	"label": "Export Project List",
+	"shortLabel": "Project List",
+	"paletteLabel": "Project List",
+	"image": "list.star"
+}*/
+(() => {
+	var action = new PlugIn.Action(function(selection, sender){
+		// action code
+		// selection options: tasks, projects, folders, tags, allObjects
+        const folderProjects = folders.reduce((acc, curr) => {
+            return acc.concat(processFolder(curr))
+        }, []);
+        const topLevelProjects = processProjectList(projects);
+        const projectList = [...folderProjects, ...topLevelProjects]
+        const projectListText = "- " + projectList.join("\n- ");
+        let draftsURL = `drafts://x-callback-url/create?text=${encodeURIComponent('# Projects List' + "\n\n" + projectListText)}`;
+        URL.fromString(draftsURL).call(success => {
+            new Alert(
+                "Projects List Saved to Drafts",
+                `Congratulations, you have ${projectList.length} projects!`
+            ).show()
+        });
+	});
+
+	action.validate = function(selection, sender){
+		// validation code
+		// selection options: tasks, projects, folders, tags, allObjects
+		return true
+	};
+	
+	return action;
+
+
+    function processFolder(folder, prefix = "") {
+        let projectList = [];
+        prefix = addToPrefix(prefix, folder.name);
+        folder.children.forEach(child => {
+            if (child instanceof Folder && child.children) {
+                let childValues = processFolder(child, prefix);
+                if (childValues.length > 0) {
+                    projectList = projectList.concat(childValues);
+                }
+            } else if (child instanceof Project) {
+                if (includeProject(child)) {
+                    const projectName = prefix + child.name;
+                    projectList.push(projectName);
+                }
+            }
+        });
+        return projectList;
+    }
+
+    function processProjectList(projects) {
+        let projectList = [];
+        projects.forEach(project => {
+            if (includeProject(project)) {
+                projectList.push(project.name);
+            }
+        });
+        
+        return projectList;
+    }
+
+    function includeProject(project) {
+        if (
+            project.status !== Project.Status.Active ||
+            project.containsSingletonActions
+            ) {
+            return false;
+        }
+        if (project.effectiveDeferDate) {
+            const timeBetween = project.effectiveDeferDate - new Date();
+            const daysBetween =  timeBetween / (1000 * 60 * 60 * 24)
+            if (daysBetween <= 7)  {
+                return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function addToPrefix(prefix, addition) {
+        return (prefix + addition + ": ");
+    }
+})();
