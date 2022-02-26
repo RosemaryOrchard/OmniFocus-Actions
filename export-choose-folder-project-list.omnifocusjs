@@ -1,0 +1,127 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Rosemary Orchard",
+	"identifier": "com.rosemaryorchard.omnifocus.export-choose-folder-project-list",
+	"version": "1.0",
+	"description": "Export a list of your active projects from a folder you choose.",
+	"label": "Export Project List from Chosen Folder",
+	"shortLabel": "Choose Folder Project List",
+	"paletteLabel": "Choose Folder Project List",
+	"image": "list.star"
+}*/
+(() => {
+	var action = new PlugIn.Action(function(selection, sender){
+        // action code
+		// selection options: tasks, projects, folders, tags, allObjects
+        const folderList = {};
+        folders.forEach(folder => {
+            folderList[folder.name] = folder;
+        });
+
+        let inputForm = new Form();
+        inputForm.addField(new Form.Field.Option(
+			"folderChoice",
+			"Folder",
+			Object.keys(folderList),
+			Object.keys(folderList),
+			null
+		));
+        formPromise = inputForm.show("Choose a folder:", "Continue");
+
+        inputForm.validate = function(formObject){
+			return formObject.values["folderChoice"] !== null
+		}
+	
+		// PROCESSING USING THE DATA EXTRACTED FROM THE FORM
+		formPromise.then(function(formObject){
+            const myProjectFolderName = formObject.values["folderChoice"];
+			
+            const myProjectFolder = folderList[myProjectFolderName];
+            if (!myProjectFolder) {
+                new Alert(
+                    `${myProjectFolderName} not found`,
+                    `Did you modify the script?`
+                ).show()
+                return false;
+            }
+
+            
+            let folderProjects = processFolder(myProjectFolder);
+            const projectListText = "- " + folderProjects.join("\n- ");
+            let draftsURL = `drafts://x-callback-url/create?text=${encodeURIComponent(`# ${myProjectFolderName} Projects List` + "\n\n" + projectListText)}`;
+            URL.fromString(draftsURL).call(success => {
+                new Alert(
+                    "Projects List Saved to Drafts",
+                    `Congratulations, you have ${folderProjects.length} project${folderProjects.length > 1 ? 's': ''}!`
+                ).show()
+            });
+        });
+		
+		// PROMISE FUNCTION CALLED UPON FORM CANCELLATION
+		formPromise.catch(function(err){
+			console.log("form cancelled", err.message)
+            return false;
+		});
+	});
+
+	action.validate = function(selection, sender){
+		// validation code
+		// selection options: tasks, projects, folders, tags, allObjects
+		return true
+	};
+	
+	return action;
+
+
+    function processFolder(folder, prefix = "") {
+        let projectList = [];
+        folder.children.forEach(child => {
+            if (child instanceof Folder && child.children) {
+                let childValues = processFolder(child, prefix);
+                if (childValues.length > 0) {
+                    projectList = projectList.concat(childValues);
+                }
+            } else if (child instanceof Project) {
+                if (includeProject(child)) {
+                    const projectName = prefix + child.name;
+                    projectList.push(projectName);
+                }
+            }
+        });
+        return projectList;
+    }
+
+    function processProjectList(projects) {
+        let projectList = [];
+        projects.forEach(project => {
+            if (includeProject(project)) {
+                projectList.push(project.name);
+            }
+        });
+        
+        return projectList;
+    }
+
+    function includeProject(project) {
+        if (
+            project.status !== Project.Status.Active ||
+            project.containsSingletonActions
+            ) {
+            return false;
+        }
+        if (project.effectiveDeferDate) {
+            const timeBetween = project.effectiveDeferDate - new Date();
+            const daysBetween =  timeBetween / (1000 * 60 * 60 * 24)
+            if (daysBetween <= 7)  {
+                return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function addToPrefix(prefix, addition) {
+        return (prefix + addition + ": ");
+    }
+})();
