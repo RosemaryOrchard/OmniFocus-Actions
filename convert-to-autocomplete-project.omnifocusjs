@@ -1,0 +1,73 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Rosemary Orchard",
+	"identifier": "com.rosemaryorchard.omnifocus.convert-to-autocomplete-project",
+	"version": "1.0",
+	"description": "Take any task(s) and make them into autocompleting projects",
+	"label": "Autocomplete Project",
+	"shortLabel": "Autocomplete Project",
+	"paletteLabel": "Autocomplete Project",
+	"image": "gearshape"
+}*/
+(() => {
+	var action = new PlugIn.Action(function(selection, sender){
+		// action code
+		// CREATE FORM FOR GATHERING USER INPUT
+		const inputForm = new Form();
+		
+		selection.tasks.forEach(function(task){
+			inputForm.addField(new Form.Field.Option(
+			task.id.primaryKey,
+			task.name,
+			["Sequential", "Parallel", "Single Actions"],
+			["Sequential", "Parallel", "Single Actions"],
+			"Sequential"
+			));
+		});
+		
+	
+		// PRESENT THE FORM TO THE USER
+		formPrompt = "Set the project type:"
+		formPromise = inputForm.show(formPrompt,"Continue")
+		
+		// VALIDATE THE USER INPUT
+		inputForm.validate = function(formObject){
+			return true;
+		}
+	
+		// PROCESSING USING THE DATA EXTRACTED FROM THE FORM
+		formPromise.then(function(formObject){
+			const projectList = selection.tasks.map(function(task){
+				const project = convertTasksToProjects([task], library.ending);
+				project = project[0];
+				project.completedByChildren = true;
+				const projectType = formObject.values[task.id.primaryKey];
+				switch(projectType) {
+					case 'Parallel':
+						project.task.sequential = false;
+						break;
+					case 'Sequential':
+						project.task.sequential = true;
+						break;
+					case 'Single Actions':
+						project.task.sequential = true;
+						break;
+				}
+				return project.id.primaryKey;
+			});
+			URL.fromString("omnifocus:///task/" + projectList.join(',')).open()
+		})
+		
+		// selection options: tasks, projects, folders, tags, allObjects
+		
+	});
+
+	action.validate = function(selection, sender){
+		// validation code
+		// selection options: tasks, projects, folders, tags, allObjects
+		return (selection.tasks.length > 0)
+	};
+	
+	return action;
+})();
