@@ -1,0 +1,28 @@
+/*{
+	"type": "action",
+	"targets": ["omnifocus"],
+	"author": "Rosemary Orchard",
+	"identifier": "com.rosemaryorchard.omnifocus.new_project",
+	"version": "1.0",
+	"description": "Creates a new Project",
+	"label": "+ Project",
+	"shortLabel": "+ Project",
+	"paletteLabel": "+ Project",
+	"image": "plus.diamond.fill"
+}*/
+(() => {
+	var action = new PlugIn.Action(function(selection, sender){
+		const newProject = new Project('');
+        document.windows[0].perspective = Perspective.BuiltIn.Projects;
+        document.windows[0].focus = [newProject];
+        document.windows[0].selectObjects([newProject]);
+        document.windows[0].inspectorVisible = true;
+	});
+
+	action.validate = function(selection, sender){
+		return true;
+	};
+	
+	return action;
+})();
+
